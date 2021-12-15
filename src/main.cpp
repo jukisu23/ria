@@ -19,60 +19,63 @@ class MotorController {
     };
 
     void checkLoop() {
-      if (timerL1 != 0 && timerL1 + onDuration <= millis()) {
+      if (timerL1 != 0 && timerL1 + onDurationL1 <= millis()) {
         Serial.println("disable L1");
         timerL1 = 0;
         digitalWrite(l1, LOW);
       }
-      if (timerL2 != 0 && timerL2 + onDuration <= millis()) {
+      if (timerL2 != 0 && timerL2 + onDurationL2 <= millis()) {
         Serial.println("disable L2");
         timerL2 = 0;
         digitalWrite(l2, LOW);
       }
 
-      if (timerR1 != 0 && timerR1 + onDuration <= millis()) {
+      if (timerR1 != 0 && timerR1 + onDurationR1 <= millis()) {
         Serial.println("disable R1");
         timerR1 = 0;
         digitalWrite(r1, LOW);
       }
-      if (timerR2 != 0 && timerR2 + onDuration <= millis()) {
+      if (timerR2 != 0 && timerR2 + onDurationR2 <= millis()) {
         Serial.println("disable R2");
         timerR2 = 0;
         digitalWrite(r2, LOW);
       }
     }
 
-    void enableMotor(byte payload) { // payload: MSB->LSB x L(1)/R(0) x x Strengh(H) Strength(L) Actuator(H) Actuator(L)
-      byte intensity = payload >> 2 & 0x03;
+    void enableMotor(byte payload) { // payload: MSB->LSB x L(1)/R(0) x x Duration(H) Duration(L) Actuator(H) Actuator(L)
+      int onDuration = (((payload >> 2) & 0x03) + 1) * 250;
       bool left = (payload >> 6) & 0x01;
       byte actuator = payload & 0x03;
-      Serial.println("left:" + String(left));
-      Serial.println("act: " + String(actuator));
+      Serial.print("duration: " + String(onDuration));
 
       if (left) {
         switch (actuator) {
           case 0:
-            Serial.println("enable L1");
+            Serial.println(" L1");
             digitalWrite(l1, HIGH);
             timerL1 = millis();
+            onDurationL1 = onDuration;
             break;
           case 1:
-            Serial.println("enable L2");
+            Serial.println(" L2");
             digitalWrite(l2, HIGH);
             timerL2 = millis();
+            onDurationL2 = onDuration;
             break;
         }
       } else {
         switch (actuator) {
           case 0:
-            Serial.println("enable R1");
+            Serial.println(" R1");
             digitalWrite(r1, HIGH);
             timerR1 = millis();
+            onDurationR1 = onDuration;
             break;
           case 1:
-            Serial.println("enable R2");
+            Serial.println(" R2");
             digitalWrite(r2, HIGH);
             timerR2 = millis();
+            onDurationR2 = onDuration;
             break;
         }
       }
@@ -89,7 +92,10 @@ class MotorController {
     int timerL1 = 0;
     int timerL2 = 0;
 
-    const int onDuration = 500; // ms
+    int onDurationL1 = 500; // ms
+    int onDurationL2 = 500; // ms
+    int onDurationR1 = 500; // ms
+    int onDurationR2 = 500; // ms
 };
 
 
@@ -102,18 +108,6 @@ class MyCallbacks: public BLECharacteristicCallbacks
     digitalWrite(2, !digitalRead(2));
     std::string value = pCharacteristic->getValue();
     motorController->enableMotor(value[0]);
-    if (value.length() > 0)
-    {
-      Serial.println("*********");
-      Serial.print("New value: ");
-      for (int i = 0; i < value.length(); i++)
-      {
-        Serial.print(value[i]);
-      }
-
-      Serial.println();
-      Serial.println("*********");
-    }
   }
 
   void onRead(BLECharacteristic *characteristics) {
